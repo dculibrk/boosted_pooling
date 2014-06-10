@@ -84,7 +84,9 @@ void* WindowDataLayerPrefetch(void* layer_pointer) {
       pair<std::string, vector<int> > image =
           layer->image_database_[window[WindowDataLayer<Dtype>::IMAGE_INDEX]];
 
-      cv::Mat cv_img = cv::imread(image.first, CV_LOAD_IMAGE_COLOR);
+      //cv::Mat cv_img = cv::imread(image.first, CV_LOAD_IMAGE_COLOR);
+      cv::Mat cv_img = cv::imread(image.first, cv::IMREAD_COLOR);
+      
       if (!cv_img.data) {
         LOG(ERROR) << "Could not open or find file " << image.first;
         return reinterpret_cast<void*>(NULL);
