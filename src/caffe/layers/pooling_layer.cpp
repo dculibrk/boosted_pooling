@@ -7,6 +7,7 @@
 #include "caffe/layer.hpp"
 #include "caffe/vision_layers.hpp"
 #include "caffe/util/math_functions.hpp"
+#include "caffe/filler.hpp"
 //#include "caffe/PoolType.h"
 
 #include <fstream>
@@ -21,7 +22,7 @@ namespace caffe {
 
    int n_pooled_elements, c, i, k;
    
-   int map_size = pooled_width_*pooled_height_;//36;
+   int top_size = pooled_width_*pooled_height_;//36;
   
        
     std::ifstream inFile(pooling_structure_file_.c_str());
@@ -29,19 +30,15 @@ namespace caffe {
     // shoud it be with the num? pooling_structure_.Reshape(bottom[0]->num(), channels_, pooled_height_, pooled_width_);
     pooling_structure_.Reshape(channels_, pooled_height_*pooled_width_/*map_size*/, height_, width_); // I will use masks instead of indexing for efficiency
     
-    /*//fill the structure with gaussian values
+    //fill the structure with zeros
     FillerParameter filler_param;
-    GaussianFiller<Dtype> filler(filler_param);
-    filler.Fill(&(this->pooling_structure_));*/
+	filler_param.set_value(0.);
+    ConstantFiller<Dtype> filler(filler_param);
+    filler.Fill(&(pooling_structure_));
     
+	pooling_structure_.Update();
+	
     Dtype* pooling_structure = pooling_structure_.mutable_cpu_data();
-    
-    //fill it with zeros
-    for (int ph = 0; ph < height_; ++ph) {
-          for (int pw = 0; pw < width_; ++pw) {
-	      pooling_structure[ph * width_ + pw] = 0;
-	  }
-    }
     
     int x_coordinate, y_coordinate;
     
@@ -49,24 +46,32 @@ namespace caffe {
     
       //load the mutable structure with ones where necessary
       for (c = 0; c < channels_; ++c) {
-	for (i = 0; i < map_size; ++i) {
+		for (i = 0; i < top_size; ++i) {
+			
+			//fill it with zeros
+			/*for (int ph = 0; ph < height_; ++ph) {
+				for (int pw = 0; pw < width_; ++pw) {
+					pooling_structure[ph * width_ + pw] = 0;
+				}
+			}*/
+			
+			inFile >> n_pooled_elements;
+		
+			for (k = 0; k < n_pooled_elements; ++k) {
+			  inFile >> x_coordinate;
+			  inFile >> y_coordinate;
+			  
+			  //take care not to overstep the boundaries
+			  x_coordinate = min(x_coordinate, width_- 1);
+			  y_coordinate = min(y_coordinate, height_- 1);
+			  
+			  pooling_structure[y_coordinate*width_ + x_coordinate] = 1;
+			
+			}
 	
-	  inFile >> n_pooled_elements;
-	
-	  for (k = 0; k < n_pooled_elements; ++k) {
-	      inFile >> x_coordinate;
-	      inFile >> y_coordinate;
-	      
-	      //take care not to overstep the boundaries
-	      x_coordinate = min(x_coordinate, width_- 1);
-	      y_coordinate = min(y_coordinate, height_- 1);
-	      
-	      pooling_structure[y_coordinate*width_ + x_coordinate] = 1;
-	  }
-	
-	  pooling_structure += pooling_structure_.offset(0,1); //move through map neurons
-	}
-	pooling_structure += pooling_structure_.offset(1); //move through channels
+			pooling_structure += pooling_structure_.offset(0,1); //move through map neurons
+		}
+		//pooling_structure += pooling_structure_.offset(1); //move through channels
       }
     }
     
@@ -217,7 +222,7 @@ Dtype PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	  }
 	  pooling_structure += pooling_structure_.offset(0,1); //move through map neurons
       }
-      pooling_structure += pooling_structure_.offset(1); //move through channels
+      //pooling_structure += pooling_structure_.offset(1); //move through channels
       bottom_data += bottom[0]->offset(0, 1);
       top_data += (*top)[0]->offset(0, 1);
       }
@@ -330,7 +335,7 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 	  pooling_structure += pooling_structure_.offset(0,1); //move through map neurons
 	}
       
-	pooling_structure += pooling_structure_.offset(1); //move through channels
+	//pooling_structure += pooling_structure_.offset(1); //move through channels
 	//bottom_data += bottom[0]->offset(0, 1);
 	//top_data += (*top)[0]->offset(0, 1);
 	bottom_data += (*bottom)[0]->offset(0, 1);

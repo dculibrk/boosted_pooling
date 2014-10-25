@@ -52,13 +52,13 @@ __global__ void MaxSelPoolForward(const int nthreads, const Dtype* bottom_data, 
     Dtype maxval = -FLT_MAX;
     
     bottom_data += (n * channels + c) * height * width;
-    
+	
     pooling_structure += (c*pooled_height*pooled_width+ph*pooled_width+pw)*height*width;
     
     for (int h = 0; h < height; ++h) {
       for (int w = 0; w < width; ++w) {
-	if(pooling_structure[h * width + w] == 1)
-	  maxval = max(maxval, bottom_data[h * width + w]);
+		if(pooling_structure[h * width + w])
+			maxval = max(maxval, bottom_data[h * width + w]);
       }
     }
     top_data[index] = maxval;
@@ -286,9 +286,10 @@ __global__ void MaxSelPoolBackward(const int nthreads, const Dtype* bottom_data,
     for (int ph = 0; ph < pooled_height; ++ph) {
       for (int pw = 0; pw < pooled_width; ++pw) {
         gradient += top_diff[ph * pooled_width + pw] *
-            (bottom_datum == top_data[ph * pooled_width + pw])*(pooling_structure[h * width + w] == 1); //could just use pooling_structure without ==1
+            (bottom_datum == top_data[ph * pooled_width + pw])
+			* (pooling_structure[((ph * pooled_width + pw) * height + h) * width + w]); //could just use pooling_structure without ==1 //(pooling_structure[h * width + w] == 1); //could just use pooling_structure without ==1
 	    
-	    pooling_structure += (height*width); //advance to the next pooling neuron mask
+	    //pooling_structure += (height*width); //advance to the next pooling neuron mask
       }
     }
     bottom_diff[index] = gradient;

@@ -124,20 +124,19 @@ TYPED_TEST(PoolingLayerTest, TestLoadStructureMaxSel) {
       
       for (int h = 0; h < layer.get_pooling_structure()->height(); ++h) {
 	   for (int w = 0; w < layer.get_pooling_structure()->width(); ++w) {
-	     if(pooling_structure[h * layer.get_pooling_structure()->width() + w] == 1){
-		mask_sum++;
+		 printf("%d,",(int) (pooling_structure[h * layer.get_pooling_structure()->width() + w]));
+	     if((int)pooling_structure[h * layer.get_pooling_structure()->width() + w]){
+			mask_sum++;
 	     }//if
 	   }
+	   printf("\n");
       }
-      if(nk < 4)
-	EXPECT_EQ(mask_sum, 9); //each test mask should have 9 1s and the rest should be 0s
-      else
-	EXPECT_EQ(mask_sum, 6); //each test mask should have 6 1s and the rest should be 0s  
+	  EXPECT_EQ(mask_sum, 9); //each test mask should have 9 1s and the rest should be 0s
       
       pooling_structure += layer.get_pooling_structure()->offset(0,1); //move through map neurons
     }
   
-    pooling_structure += layer.get_pooling_structure()->offset(1); //move through channels
+    //pooling_structure += layer.get_pooling_structure()->offset(1); //move through channels
   }// for c
 
 }
