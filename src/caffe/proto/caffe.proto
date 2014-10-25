@@ -309,12 +309,14 @@ message PoolingParameter {
     MAX = 0;
     AVE = 1;
     STOCHASTIC = 2;
+	MAX_SEL = 3;
   }
   optional PoolMethod pool = 1 [default = MAX]; // The pooling method
   optional uint32 kernel_size = 2; // The kernel size
   optional uint32 stride = 3 [default = 1]; // The stride
   // The padding size -- currently implemented only for average pooling.
   optional uint32 pad = 4 [default = 0];
+  optional string pooling_structure_file = 5 [default = "poolingstructure.txt"]; 	//the string to specify the where to read the pooling structure from
 }
 
 // Message that stores parameters used by PowerLayer
@@ -375,6 +377,7 @@ message V0LayerParameter {
     MAX = 0;
     AVE = 1;
     STOCHASTIC = 2;
+	MAX_SEL = 3;
   }
   optional PoolMethod pool = 11 [default = MAX]; // The pooling method
   optional float dropout_ratio = 12 [default = 0.5]; // dropout ratio

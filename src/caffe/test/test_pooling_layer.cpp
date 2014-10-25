@@ -56,6 +56,28 @@ TYPED_TEST(PoolingLayerTest, TestSetup) {
   EXPECT_EQ(this->blob_top_->width(), 2);
 }
 
+TYPED_TEST(PoolingLayerTest, TestSetupMaxSel) {
+  LayerParameter layer_param;
+  PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
+  pooling_param->set_pool(PoolingParameter_PoolMethod_MAX_SEL);
+  pooling_param->set_pooling_structure_file(""); //if no pooling_structure_file is set it just creates the structure and loads nothing
+  pooling_param->set_kernel_size(3);
+  pooling_param->set_stride(2); // these make the pooling_height = 2 and pooling_width = 1
+  //pooling_param->set_pad(1);
+  
+  PoolingLayer<TypeParam> layer(layer_param);
+  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  EXPECT_EQ(this->blob_top_->num(), this->blob_bottom_->num());
+  EXPECT_EQ(this->blob_top_->channels(), this->blob_bottom_->channels());
+  EXPECT_EQ(this->blob_top_->height(), 3);
+  EXPECT_EQ(this->blob_top_->width(), 2);
+  
+  EXPECT_EQ(layer.get_pooling_structure()->num(), 3); //we store the number of channels here
+  EXPECT_EQ(layer.get_pooling_structure()->channels(), 6);
+  EXPECT_EQ(layer.get_pooling_structure()->height(), 6); // this is the not pooled height
+  EXPECT_EQ(layer.get_pooling_structure()->width(), 5); // this is the not pooled with
+}
+
 TYPED_TEST(PoolingLayerTest, TestSetupPadded) {
   LayerParameter layer_param;
   PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
@@ -69,6 +91,55 @@ TYPED_TEST(PoolingLayerTest, TestSetupPadded) {
   EXPECT_EQ(this->blob_top_->channels(), this->blob_bottom_->channels());
   EXPECT_EQ(this->blob_top_->height(), 4);
   EXPECT_EQ(this->blob_top_->width(), 3);
+}
+
+TYPED_TEST(PoolingLayerTest, TestLoadStructureMaxSel) {
+  LayerParameter layer_param;
+  PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
+  pooling_param->set_pool(PoolingParameter_PoolMethod_MAX_SEL);
+  pooling_param->set_pooling_structure_file("src/caffe/test/test_data/pooling_structure.txt"); //if no pooling_structure_file is set it just creates the structure and loads nothing
+  pooling_param->set_kernel_size(3);
+  pooling_param->set_stride(2); // these make the pooling_height = 2 and pooling_width = 1
+  //pooling_param->set_pad(1);
+  
+  PoolingLayer<TypeParam> layer(layer_param);
+  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  
+  EXPECT_EQ(this->blob_top_->num(), this->blob_bottom_->num());
+  EXPECT_EQ(this->blob_top_->channels(), this->blob_bottom_->channels());
+  EXPECT_EQ(this->blob_top_->height(), 3);
+  EXPECT_EQ(this->blob_top_->width(), 2);
+  
+  EXPECT_EQ(layer.get_pooling_structure()->num(), 3); //we store the number of channels here
+  EXPECT_EQ(layer.get_pooling_structure()->channels(), 6); //this is the pooled_width*pooled_height
+  EXPECT_EQ(layer.get_pooling_structure()->height(), 6); // this is the not pooled height
+  EXPECT_EQ(layer.get_pooling_structure()->width(), 5); // this is the not pooled with
+  
+  const TypeParam* pooling_structure = layer.get_pooling_structure()->cpu_data();
+  
+  for (int c = 0; c < layer.get_pooling_structure()->num(); ++c) {
+    for (int nk = 0; nk < layer.get_pooling_structure()->channels(); ++nk) //go through the neuron maps
+    {
+      int mask_sum = 0; 
+      
+      for (int h = 0; h < layer.get_pooling_structure()->height(); ++h) {
+	   for (int w = 0; w < layer.get_pooling_structure()->width(); ++w) {
+	     if(pooling_structure[h * layer.get_pooling_structure()->width() + w] == 1){
+		mask_sum++;
+	     }//if
+	   }
+      }
+      if(nk < 4)
+	EXPECT_EQ(mask_sum, 9); //each test mask should have 9 1s and the rest should be 0s
+      else
+	EXPECT_EQ(mask_sum, 6); //each test mask should have 6 1s and the rest should be 0s  
+      
+      pooling_structure += layer.get_pooling_structure()->offset(0,1); //move through map neurons
+    }
+  
+    pooling_structure += layer.get_pooling_structure()->offset(1); //move through channels
+  }// for c
+
 }
 
 /*
@@ -112,6 +183,20 @@ TYPED_TEST(PoolingLayerTest, TestCPUGradientMax) {
       &(this->blob_top_vec_));
 }
 
+TYPED_TEST(PoolingLayerTest, TestCPUGradientMaxSel) {
+  LayerParameter layer_param;
+  PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
+  pooling_param->set_kernel_size(3);
+  pooling_param->set_stride(2);
+  pooling_param->set_pool(PoolingParameter_PoolMethod_MAX_SEL);
+  pooling_param->set_pooling_structure_file("src/caffe/test/test_data/pooling_structure.txt");
+  Caffe::set_mode(Caffe::CPU);
+  PoolingLayer<TypeParam> layer(layer_param);
+  GradientChecker<TypeParam> checker(1e-4, 1e-2);
+  checker.CheckGradientExhaustive(&layer, &(this->blob_bottom_vec_),
+      &(this->blob_top_vec_));
+}
+
 TYPED_TEST(PoolingLayerTest, TestGPUGradientMax) {
   LayerParameter layer_param;
   PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
@@ -125,6 +210,19 @@ TYPED_TEST(PoolingLayerTest, TestGPUGradientMax) {
       &(this->blob_top_vec_));
 }
 
+TYPED_TEST(PoolingLayerTest, TestGPUGradientMaxSel) {
+  LayerParameter layer_param;
+  PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
+  pooling_param->set_pooling_structure_file("src/caffe/test/test_data/pooling_structure.txt");
+  pooling_param->set_kernel_size(3);
+  pooling_param->set_stride(2);
+  pooling_param->set_pool(PoolingParameter_PoolMethod_MAX_SEL);
+  Caffe::set_mode(Caffe::GPU);
+  PoolingLayer<TypeParam> layer(layer_param);
+  GradientChecker<TypeParam> checker(1e-4, 1e-2);
+  checker.CheckGradientExhaustive(&layer, &(this->blob_bottom_vec_),
+      &(this->blob_top_vec_));
+}
 
 TYPED_TEST(PoolingLayerTest, TestCPUForwardAve) {
   LayerParameter layer_param;

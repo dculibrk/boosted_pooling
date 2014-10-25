@@ -297,6 +297,8 @@ class PoolingLayer : public Layer<Dtype> {
   virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top);
 
+  Blob<Dtype>* get_pooling_structure(){return &pooling_structure_;}
+  
  protected:
   virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top);
@@ -306,7 +308,8 @@ class PoolingLayer : public Layer<Dtype> {
       const bool propagate_down, vector<Blob<Dtype>*>* bottom);
   virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
       const bool propagate_down, vector<Blob<Dtype>*>* bottom);
-
+  virtual void LoadPoolingStructure();
+  
   int kernel_size_;
   int stride_;
   int pad_;
@@ -315,6 +318,11 @@ class PoolingLayer : public Layer<Dtype> {
   int width_;
   int pooled_height_;
   int pooled_width_;
+
+  //Fields used to store the special pooling structure and the filename to read it from
+  Blob<Dtype> pooling_structure_;  
+  std::string pooling_structure_file_;
+  
   Blob<Dtype> rand_idx_;
 };
 
