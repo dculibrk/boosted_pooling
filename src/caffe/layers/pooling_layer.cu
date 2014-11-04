@@ -61,6 +61,10 @@ __global__ void MaxSelPoolForward(const int nthreads, const Dtype* bottom_data, 
 			maxval = max(maxval, bottom_data[h * width + w]);
       }
     }
+	
+	if(maxval == -FLT_MAX)
+		maxval = 0;
+		
     top_data[index] = maxval;
   }
 }
