@@ -231,7 +231,7 @@ Dtype PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 	//set those already not set to 0
 	for (int i = 0; i < top_count; ++i) {
       if(top_data[i] == -FLT_MAX)
-		top_data[i] = 0;
+		top_data[i] = Dtype(0.);
     }
    break;
   case PoolingParameter_PoolMethod_STOCHASTIC:
