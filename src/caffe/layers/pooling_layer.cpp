@@ -323,31 +323,32 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     
     // The main loop
     for (int n = 0; n < (*bottom)[0]->num(); ++n) {
-      for (int c = 0; c < channels_; ++c) {
-	for (int nk = 0; nk < pooled_height_*pooled_width_; ++nk) //go through the neuron maps
-	{
-	  for (int h = 0; h < height_; ++h) {
-	    for (int w = 0; w < width_; ++w) {
-	      if(pooling_structure[h * width_ + w] == 1){
-		//take this input into account
-		  bottom_diff[h * width_ + w] +=
-                    top_diff[nk] *
-                    (bottom_data[h * width_ + w] ==
-                        top_data[nk]);
-	      }
-	      
-	    }
-	  }
-	  pooling_structure += pooling_structure_.offset(0,1); //move through map neurons
-	}
+		pooling_structure = this->pooling_structure_.mutable_cpu_data();
+		for (int c = 0; c < channels_; ++c) {
+			for (int nk = 0; nk < pooled_height_*pooled_width_; ++nk) //go through the neuron maps
+			{
+			  for (int h = 0; h < height_; ++h) {
+				for (int w = 0; w < width_; ++w) {
+				  if(pooling_structure[h * width_ + w] == 1){
+					//take this input into account
+					bottom_diff[h * width_ + w] +=
+							top_diff[nk] *
+							(bottom_data[h * width_ + w] ==
+								top_data[nk]);
+				  }
+				  
+				}
+			}
+			pooling_structure += pooling_structure_.offset(0,1); //move through map neurons
+		}
       
-	//pooling_structure += pooling_structure_.offset(1); //move through channels
-	//bottom_data += bottom[0]->offset(0, 1);
-	//top_data += (*top)[0]->offset(0, 1);
-	bottom_data += (*bottom)[0]->offset(0, 1);
-	top_data += top[0]->offset(0, 1);
-	bottom_diff += (*bottom)[0]->offset(0, 1);
-	top_diff += top[0]->offset(0, 1);
+		//pooling_structure += pooling_structure_.offset(1); //move through channels
+		//bottom_data += bottom[0]->offset(0, 1);
+		//top_data += (*top)[0]->offset(0, 1);
+		bottom_data += (*bottom)[0]->offset(0, 1);
+		top_data += top[0]->offset(0, 1);
+		bottom_diff += (*bottom)[0]->offset(0, 1);
+		top_diff += top[0]->offset(0, 1);
       }
     }
     break;
