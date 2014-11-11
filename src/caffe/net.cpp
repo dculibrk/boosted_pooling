@@ -211,6 +211,16 @@ void Net<Dtype>::GetLearningRateAndWeightDecay() {
         params_weight_decay_.push_back(1.);
       }
     }
+	
+	// push the pooling layer masks
+	//if (layers_[i]->layer_param().pooling_structure_size()) {
+	/*if (layers_[i]->layer_param().pooling_param().pool() == PoolingParameter_PoolMethod_MAX_SEL){
+      //CHECK_EQ(layers_[i]->layer_param().pooling_structure_size(),
+      //    layer_blobs.size());
+      //for (int j = 0; j < layer_blobs.size(); ++j) {
+	  
+		pooling_structure_ =  layers_[i]->get_pooling_structure();
+	}*/
   }
 }
 

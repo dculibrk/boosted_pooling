@@ -297,7 +297,7 @@ class PoolingLayer : public Layer<Dtype> {
   virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top);
 
-  Blob<Dtype>* get_pooling_structure(){return &pooling_structure_;}
+  Blob<Dtype>* get_pooling_structure(){return pooling_structure_;}
   
  protected:
   virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
@@ -320,7 +320,7 @@ class PoolingLayer : public Layer<Dtype> {
   int pooled_width_;
 
   //Fields used to store the special pooling structure and the filename to read it from
-  Blob<Dtype> pooling_structure_;  
+  Blob<Dtype>* pooling_structure_;  
   std::string pooling_structure_file_;
   
   Blob<Dtype> rand_idx_;

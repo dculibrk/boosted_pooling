@@ -27,18 +27,29 @@ namespace caffe {
        
     std::ifstream inFile(pooling_structure_file_.c_str());
    
-    // shoud it be with the num? pooling_structure_.Reshape(bottom[0]->num(), channels_, pooled_height_, pooled_width_);
-    pooling_structure_.Reshape(channels_, pooled_height_*pooled_width_/*map_size*/, height_, width_); // I will use masks instead of indexing for efficiency
-    
-    //fill the structure with zeros
-    FillerParameter filler_param;
-	filler_param.set_value(0.);
-    ConstantFiller<Dtype> filler(filler_param);
-    filler.Fill(&(pooling_structure_));
-    
-	pooling_structure_.Update();
+	CHECK_EQ(this->blobs_.size(), 0) << "PoolingLayer should have no blobs unless MAX_SEL.";
 	
-    Dtype* pooling_structure = pooling_structure_.mutable_cpu_data();
+	this->blobs_.resize(1);
+
+	// Intialize the pooling_structure
+	this->blobs_[0].reset(new Blob<Dtype>(
+		channels_, pooled_height_*pooled_width_/*map_size*/, height_, width_));
+	
+	pooling_structure_ = this->blobs_[0].get();
+	
+	//fill the structure with zeros
+	FillerParameter filler_param;
+	filler_param.set_value(0.);
+	ConstantFiller<Dtype> filler(filler_param);
+	filler.Fill(pooling_structure_);
+ 
+    // shoud it be with the num? pooling_structure_.Reshape(bottom[0]->num(), channels_, pooled_height_, pooled_width_);
+    ///pooling_structure_.Reshape(channels_, pooled_height_*pooled_width_/*map_size*/, height_, width_); // I will use masks instead of indexing for efficiency
+    
+       
+	pooling_structure_->Update();
+	
+    Dtype* pooling_structure = pooling_structure_->mutable_cpu_data();
     
     int x_coordinate, y_coordinate;
     
@@ -69,7 +80,7 @@ namespace caffe {
 			
 			}
 	
-			pooling_structure += pooling_structure_.offset(0,1); //move through map neurons
+			pooling_structure += pooling_structure_->offset(0,1); //move through map neurons
 		}
 		//pooling_structure += pooling_structure_.offset(1); //move through channels
       }
@@ -197,7 +208,7 @@ Dtype PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     break;
     case PoolingParameter_PoolMethod_MAX_SEL:
     
-      pooling_structure  = pooling_structure_.cpu_data();
+      pooling_structure  = pooling_structure_->cpu_data();
       
     // Initialize
     for (int i = 0; i < top_count; ++i) {
@@ -206,27 +217,29 @@ Dtype PoolingLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     
     // The main loop
     for (int n = 0; n < bottom[0]->num(); ++n) {
-      for (int c = 0; c < channels_; ++c) {
-	for (int nk = 0; nk < pooled_height_*pooled_width_; ++nk) //go through the neuron maps
-	{
-	  for (int h = 0; h < height_; ++h) {
-	    for (int w = 0; w < width_; ++w) {
-	      if(pooling_structure[h * width_ + w] == 1){
-		//take this input into account
-		  top_data[nk] =
-			  max(top_data[nk],
-			  bottom_data[h * width_ + w]);
-	      }
-	      
-	    }
-	  }
-	  pooling_structure += pooling_structure_.offset(0,1); //move through map neurons
-      }
-      //pooling_structure += pooling_structure_.offset(1); //move through channels
-      bottom_data += bottom[0]->offset(0, 1);
-      top_data += (*top)[0]->offset(0, 1);
-      }
-    }
+		pooling_structure  = pooling_structure_->cpu_data();
+		
+		for (int c = 0; c < channels_; ++c) {
+			for (int nk = 0; nk < pooled_height_*pooled_width_; ++nk) //go through the neuron maps
+			{
+				  for (int h = 0; h < height_; ++h) {
+					for (int w = 0; w < width_; ++w) {
+					  if(pooling_structure[h * width_ + w] == 1){
+						//take this input into account
+						top_data[nk] =
+						  max(top_data[nk],
+						  bottom_data[h * width_ + w]);
+					  }
+					  
+					}
+				  }
+				  pooling_structure += pooling_structure_->offset(0,1); //move through map neurons
+			}
+			//pooling_structure += pooling_structure_.offset(1); //move through channels
+			bottom_data += bottom[0]->offset(0, 1);
+			top_data += (*top)[0]->offset(0, 1);
+		}
+	}
 	
 	//set those already not set to 0
 	for (int i = 0; i < top_count; ++i) {
@@ -319,11 +332,11 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     break;
     case PoolingParameter_PoolMethod_MAX_SEL:
     
-      pooling_structure = this->pooling_structure_.mutable_cpu_data();
+      pooling_structure = this->pooling_structure_->mutable_cpu_data();
     
     // The main loop
     for (int n = 0; n < (*bottom)[0]->num(); ++n) {
-		pooling_structure = this->pooling_structure_.mutable_cpu_data();
+		pooling_structure = this->pooling_structure_->mutable_cpu_data();
 		for (int c = 0; c < channels_; ++c) {
 			for (int nk = 0; nk < pooled_height_*pooled_width_; ++nk) //go through the neuron maps
 			{
@@ -339,7 +352,7 @@ void PoolingLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 				  
 				}
 			}
-			pooling_structure += pooling_structure_.offset(0,1); //move through map neurons
+			pooling_structure += pooling_structure_->offset(0,1); //move through map neurons
 		}
       
 		//pooling_structure += pooling_structure_.offset(1); //move through channels

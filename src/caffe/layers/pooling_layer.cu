@@ -174,7 +174,7 @@ template <typename Dtype>
 Dtype PoolingLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top) {
   const Dtype* bottom_data = bottom[0]->gpu_data();
-  const Dtype* pooling_structure; // = this->pooling_structure_.gpu_data();
+  const Dtype* pooling_structure; // = this->`.gpu_data();
   Dtype* top_data = (*top)[0]->mutable_gpu_data();
   int count = (*top)[0]->count();
   switch (this->layer_param_.pooling_param().pool()) {
@@ -186,7 +186,7 @@ Dtype PoolingLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
         top_data);
     break;
   case PoolingParameter_PoolMethod_MAX_SEL:
-    pooling_structure = this->pooling_structure_.gpu_data();
+    pooling_structure = this->pooling_structure_->gpu_data();
     // NOLINT_NEXT_LINE(whitespace/operators)
     MaxSelPoolForward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, bottom_data, pooling_structure, bottom[0]->num(), channels_,
@@ -374,7 +374,7 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   }
   const Dtype* top_diff = top[0]->gpu_diff();
   Dtype* bottom_diff = (*bottom)[0]->mutable_gpu_diff();
-  const Dtype* pooling_structure; // = this->pooling_structure_.gpu_data();
+  const Dtype* pooling_structure; // = this->pooling_structure_->gpu_data();
   int count = (*bottom)[0]->count();
   switch (this->layer_param_.pooling_param().pool()) {
   case PoolingParameter_PoolMethod_MAX:
@@ -386,7 +386,7 @@ void PoolingLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     break;
   case PoolingParameter_PoolMethod_MAX_SEL:
     // NOLINT_NEXT_LINE(whitespace/operators)
-    pooling_structure = this->pooling_structure_.gpu_data();
+    pooling_structure = this->pooling_structure_->gpu_data();
     MaxSelPoolBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, (*bottom)[0]->gpu_data(), top[0]->gpu_data(), top_diff,
         pooling_structure, top[0]->num(),channels_, height_, width_, pooled_height_,
